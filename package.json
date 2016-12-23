@@ -22,7 +22,9 @@
     "lunr-languages": "yoshidax/lunr-languages#embed_tinysegmenter_in_lunr_jp"
   },
   "devDependencies": {},
-  "scripts": {},
+  "scripts": {
+    "prepublish": "rm assets/lunr*.js && cp node_modules/lunr-languages/min/lunr.*.js ./assets && cp node_modules/lunr-languages/lunr.jp.js ./assets"
+  },
   "keywords": [
     "gitbook",
     "plugin"
