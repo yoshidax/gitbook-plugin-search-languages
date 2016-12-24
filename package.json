@@ -2,9 +2,9 @@
   "name": "gitbook-plugin-search-languages",
   "description": "this plugin will replace keyword search in gitbook to your language.",
   "main": "index.js",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "engines": {
-    "gitbook": ">=2.5.0"
+    "gitbook": ">=3.*.*"
   },
   "homepage": "https://github.com/yoshidax/gitbook-plugin-search-languages#readme",
   "repository": {
@@ -16,13 +16,35 @@
     "url": "https://github.com/mrpotes/gitbook-plugin-search-languages/issues"
   },
   "dependencies": {
-    "cheerio": "^0.19.0",
-    "lodash": "^3.10.1",
-    "lunr": "^0.5.12",
+    "gitbook-plugin-lunr": "1.2.0",
+    "lunr": "0.5.12",
     "lunr-languages": "yoshidax/lunr-languages#embed_tinysegmenter_in_lunr_jp"
   },
-  "devDependencies": {},
-  "scripts": {},
+  "devDependencies": {
+    "uglify-js": "2.7.5"
+  },
+  "scripts": {
+    "prepublish": "rm -f assets/* && cp node_modules/gitbook-plugin-lunr/assets/lunr.min.js ./assets && uglifyjs -c -o ./assets/lunr-languages.min.js ./node_modules/lunr-languages/lunr.stemmer.support.js ./node_modules/lunr-languages/lunr.??.js && cp node_modules/gitbook-plugin-lunr/assets/search-lunr.js ./assets"
+  },
+  "gitbook": {
+    "properties": {
+      "maxIndexSize": {
+        "type": "number",
+        "title": "Limit size for the index",
+        "default": 1000000
+      },
+      "ignoreSpecialCharacters": {
+        "type": "boolean",
+        "title": "Ignore special characters in words",
+        "default": false
+      },
+      "lang": {
+        "type": "string",
+        "title": "lang code",
+        "default": "jp"
+      }
+    }
+  },
   "keywords": [
     "gitbook",
     "plugin"

@@ -1,86 +1,108 @@
 var lunr = require('lunr');
-var fs = require('fs');
-var path = require('path');
-var _ = require('lodash');
-var $ = require('cheerio');
+var Entities = require('html-entities').AllHtmlEntities;
 
-var supportLangs = ['da', 'de', 'du', 'es', 'fi', 'fr', 'hu', 'it', 'jp', 'no', 'pt', 'ro', 'ru', 'sv', 'tr'];
+var Html = new Entities();
+
+var searchIndex;
+// Called with the `this` context provided by Gitbook
+function getSearchIndex(context) {
+    if (!searchIndex) {
+        // Create search index
+        var ignoreSpecialCharacters = context.config.get('pluginsConfig.searchLanguages.ignoreSpecialCharacters')
+                                      || context.config.get('searchLanguages.ignoreSpecialCharacters');
+        var lang = context.config.get('pluginsConfig.searchLanguages.lang');
+        if (lang) {
+            require('lunr-languages/lunr.stemmer.support.js')(lunr);
+            require('lunr-languages/lunr.' + lang + '.js')(lunr);
+        }
+        searchIndex = lunr(function () {
+            if (lang) {
+                this.use(lunr[lang]);
+            }
+            this.ref('url');
+
+            this.field('title', { boost: 10 });
+            this.field('keywords', { boost: 15 });
+            this.field('body');
+
+            if (!ignoreSpecialCharacters) {
+                // Don't trim non words characters (to allow search such as "C++")
+                this.pipeline.remove(lunr.trimmer);
+            }
+        });
+    }
+    return searchIndex;
+}
+
+// Map of Lunr ref to document
+var documentsStore = {};
+
+var searchIndexEnabled = true;
+var indexSize = 0;
 
 module.exports = {
     book: {
         assets: './assets',
-        html: {
-            "body:end": function(page) {
-                if (this.book.options.generator != 'website') return;
-                if (this.book.context.searchLanguages.isSkip) return;
-                var lang = this.book.context.searchLanguages.lang;
-                var bodyEnd = [
-                    '<script src="'+ page.staticBase + '/plugins/gitbook-plugin-search-languages/lunr.stemmer.support.js"></script>',
-                    '<script src="'+ page.staticBase + '/plugins/gitbook-plugin-search-languages/lunr.' + lang + '.js"></script>',
-                    '<script src="'+ page.staticBase + '/plugins/gitbook-plugin-search-languages/search.lang.js"></script>'
-                ].join('\n');
-                return bodyEnd;
-            }
-        }
+        js: [ 'lunr.min.js', 'lunr-languages.min.js', 'search-lunr.js' ]
     },
 
     hooks: {
         "init": function() {
-            var lang;
-            var isSkip;
-            if (this.options.generator != 'website') return;
-            this.context.searchLanguages = {};
-            this.context.searchLanguages.lang = lang = this.config.options.pluginsConfig.search_languages.lang;
-            this.context.searchLanguages.isSkip 
-                = isSkip = (!lang || lang === 'en' || !_.any(supportLangs, function(lng) { return lng === lang }));  
-            if (isSkip) {
-                this.log.warn.ln('[search-languages] not support language : ' + lang);
-                return;
-            }
-
-            require('lunr-languages/lunr.stemmer.support')(lunr);
-            require('lunr-languages/lunr.' + lang)(lunr);
-            // Create search index
-            this.context.searchIndex = lunr(function () {
-                this.ref('url');
-                this.use(lunr[lang]);
-                this.field('title', { boost: 10 });
-                this.field('body');
-            });
         },
         // Index each page
-        "page": function(page) {
-            if (this.options.generator != 'website') return page;
-            if (this.context.searchLanguages.isSkip) return page;
+        'page': function(page) {
+            if (this.output.name != 'website' || !searchIndexEnabled || page.search === false) {
+                return page;
+            }
 
-            var lang = this.context.searchLanguages.lang;
-            // if (_.any(supportLangs, function(lng) { return lng === lang })) {
-            // Extract HTML
-            var html = _.pluck(page.sections, 'content').join(' ');
-    
-            // Transform as TEXT
-            var text = $('<p>' + html.replace(/(<([^>]+)>)/ig, '') + '</p>').text();
-            
+            var text, maxIndexSize;
+            maxIndexSize = this.config.get('pluginsConfig.searchLanguages.maxIndexSize')
+                                            || this.config.get('searchLanguages.maxIndexSize');
+
+            this.log.debug.ln('index page', page.path);
+
+            text = page.content;
+            // Decode HTML
+            text = Html.decode(text);
+            // Strip HTML tags
+            text = text.replace(/(<([^>]+)>)/ig, '');
+
+            indexSize = indexSize + text.length;
+            if (indexSize > maxIndexSize) {
+                this.log.warn.ln('search index is too big, indexing is now disabled');
+                searchIndexEnabled = false;
+                return page;
+            }
+
+            var keywords = [];
+            if (page.search) {
+                keywords = page.search.keywords || [];
+            }
+
             // Add to index
-            this.context.searchIndex.add({
-                url: this.contentLink(page.path),
-                title: $('<p>' + page.progress.current.title + '</p>').text(),
+            var doc = {
+                url: this.output.toURL(page.path),
+                title: page.title,
+                summary: page.description,
+                keywords: keywords.join(' '),
                 body: text
-            })
-            // }
+            };
+
+            documentsStore[doc.url] = doc;
+            getSearchIndex(this).add(doc);
 
             return page;
         },
 
         // Write index to disk
-        "finish": function() {
-            if (this.options.generator != 'website') return;
-            if (this.context.searchLanguages.isSkip) return;
-            fs.writeFileSync(
-                path.join(this.options.output, "search_index.lang.json"),
-                JSON.stringify(this.context.searchIndex)
-            );
+        'finish': function() {
+            if (this.output.name != 'website') return;
+
+            this.log.debug.ln('write search index');
+            return this.output.writeFile('search_index.json', JSON.stringify({
+                index: getSearchIndex(this),
+                store: documentsStore
+            }));
         }
     }
 };
-
