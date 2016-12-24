@@ -2,7 +2,7 @@
   "name": "gitbook-plugin-search-languages",
   "description": "this plugin will replace keyword search in gitbook to your language.",
   "main": "index.js",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "engines": {
     "gitbook": ">=3.*.*"
   },
