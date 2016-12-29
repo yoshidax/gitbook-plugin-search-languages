@@ -90,6 +90,10 @@ You can disable this if your text is essentially English prose with the `ignoreS
 
 ## change logs
 
+* version 0.1.1 (2016-12-29)
+  fix: updated the outdated libs.
+* version 0.1.0 (2016-12-24)
+  fix: Overall fix to remove "WIP" condition (#1)
 * version 0.0.1 (2015-11-17)
 
 [![NPM](https://nodei.co/npm/gitbook-plugin-search-languages.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/gitbook-plugin-search-languages/)

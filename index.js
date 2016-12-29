@@ -13,6 +13,9 @@ function getSearchIndex(context) {
         var lang = context.config.get('pluginsConfig.searchLanguages.lang');
         if (lang) {
             require('lunr-languages/lunr.stemmer.support.js')(lunr);
+            if (lang === 'jp') {
+                require('lunr-languages/tinyseg.js')(lunr);
+            }
             require('lunr-languages/lunr.' + lang + '.js')(lunr);
         }
         searchIndex = lunr(function () {
