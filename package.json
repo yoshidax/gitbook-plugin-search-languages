@@ -13,18 +13,18 @@
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mrpotes/gitbook-plugin-search-languages/issues"
+    "url": "https://github.com/yoshidax/gitbook-plugin-search-languages/issues"
   },
   "dependencies": {
     "gitbook-plugin-lunr": "1.2.0",
     "lunr": "0.5.12",
-    "lunr-languages": "yoshidax/lunr-languages#embed_tinysegmenter_in_lunr_jp"
+    "lunr-languages": "yoshidax/lunr-languages#yoshidax_build"
   },
   "devDependencies": {
     "uglify-js": "2.7.5"
   },
   "scripts": {
-    "prepublish": "rm -f assets/* && cp node_modules/gitbook-plugin-lunr/assets/lunr.min.js ./assets && uglifyjs -c -o ./assets/lunr-languages.min.js ./node_modules/lunr-languages/lunr.stemmer.support.js ./node_modules/lunr-languages/lunr.??.js && cp node_modules/gitbook-plugin-lunr/assets/search-lunr.js ./assets"
+    "prepublish": "rm -f assets/* && cp node_modules/gitbook-plugin-lunr/assets/lunr.min.js ./assets && uglifyjs -c -o ./assets/lunr-languages.min.js ./node_modules/lunr-languages/lunr.stemmer.support.js ./node_modules/lunr-languages/tinyseg.js ./node_modules/lunr-languages/lunr.??.js && cp node_modules/gitbook-plugin-lunr/assets/search-lunr.js ./assets"
   },
   "gitbook": {
     "properties": {
